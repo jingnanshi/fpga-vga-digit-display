@@ -86,15 +86,16 @@ module vga_driver#(parameter H_AV  = 10'd640,
 	// Generate x and y
 	always @(posedge pix_clk, posedge reset) begin
 		if (reset) begin
-			x <= 0; y <= 0;
+			x <= 0;
+			y <= 0;
 		end else begin
 			x <= x + 10'd1;         // increment pixel
 			if (x >= H_END) begin 
 				x <= 0;
 				y <= y + 10'd1; // increment line 
-			end
 
-			if (y >= V_END) y <= 0;
+				if (y >= V_END) y <= 0;
+			end
 		end
 	end
-endmodule 
+endmodule
