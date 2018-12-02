@@ -17,23 +17,13 @@ module vga_digit_display(input  logic clk,
 			 output logic G,
 			 output logic B);
 
-  // TODO: Consider using phased lock loop clk generate for more pression
-
-  // generates a 25 MHz pixel clock
-  // p = 5; N = 3;
-  // 40 MHz * p / 2^N = 25 MHz 
-  // (close to 25.175 MHz)
-  logic [2:0] q;
-  always_ff @(posedge clk, posedge reset) begin
-    if (reset) q <= 0;
-    else       q <= q + 3'd5;
-  end
-
-  logic pix_clk; assign pix_clk = q[2];
-	
-  // driver module
   logic [9:0] x, y;
   logic valid;
+  
+  // Create 25.175 MHz pixel clock for the VGA
+  vga_pll vga_pll(.inclk0(clk), .c0(pix_clk));
+	
+  // driver module
   vga_driver driver(pix_clk, reset, hSync, vSync, x, y, valid);
 
   // draw a red square
@@ -42,7 +32,7 @@ module vga_digit_display(input  logic clk,
   assign B = 0;
 endmodule 
 
-// Module for generating x,y,hsync,vsync,valid
+// Module for generating x, y, hsync, vsync, valid
 // pix_clk: 25.175 MHz
 // Screen Refresh Rate: 60 Hz
 //
