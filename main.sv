@@ -76,6 +76,43 @@ module vga_driver#(parameter H_AV  = 10'd640,
   end
 endmodule
 
+// Digit generation (320x320 digit horizontally centered on screen)
+//  using a 10 digit 6x8 ROM from a text file
+module dig_gen_rom#(parameter SIZE    = 320,
+			      X_START = 160,
+			      X_END   = X_START + SIZE,
+			      X_DIV   = 53,  // SIZE / 6 (cols of digit)
+			      Y_START = 20,
+			      Y_END   = X_START + SIZE,
+			      Y_DIV   = 40)  // SIZE / 8 (rows of digit)
+                  (input  logic [3:0] digit,
+		   input  logic [9:0] x, y,
+                   output logic       pixel);
+
+  logic [5:0] digrom[3:0]; // digit generator ROM
+  logic [5:0] line;        // a line of the digit
+  logic xoff, yoff, valid;
+
+  assign valid = (x >= X_START & x < X_END) &
+		 (y >= Y_START & y < Y_END);
+
+  // Scale the digit to 320x320 using divider
+  assign xoff = (valid) ? (x - X_START) / X_DIV : 0;
+  assign yoff = (valid) ? (y - Y_START) / Y_DIV : 0;
+
+  // initialize the ROM from file
+  initial
+    $readmemb("digrom.txt", digrom);
+
+  // extract the current line from the desired digit
+  //  6x8 digit; digit * 8 + curr_y give the line from ROM
+  assign line = {digrom[yoff+(digit, 3'b000}]};
+
+  // reverse the bit order and extract current pixel
+  assign pixel = (valid) ? line[3'd5 - xoff] : 0;
+
+endmodule
+
 // Simple test module: Draw a red square to the screen
 module gen_red_square(input  logic [9:0] x, y,
 		      output logic       R, G, B);
