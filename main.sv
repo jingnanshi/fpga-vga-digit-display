@@ -13,16 +13,18 @@ module vga_digit_display(input  logic clk, reset,
 			 output logic hSync, vSync, R, G, B);
 
   logic [9:0] x, y;
-  logic valid;
+  logic       valid;
+  logic [3:0] digit; assign digit = 4'd0;  // TODO: Make into an input
+  logic       digitEn; assign digitEn = 1; // TODO: Make into an input
   
   // Create 25.175 MHz pixel clock for the VGA
-  vga_pll vga_pll(.inclk0(clk), .c0(pix_clk));
+  vga_pll vga_pll(.inclk0(clk), .c0(pixClk));
 	
   // driver module
-  vga_driver driver(pix_clk, reset, hSync, vSync, x, y, valid);
+  vga_driver driver(pixClk, reset, hSync, vSync, x, y, valid);
 
-  // draw a red square
-  gen_red_square grs(x, y, R, G, B);
+  // generate video
+  video_gen video(digit, digitEn, x, y, R, G, B);
 endmodule 
 
 // Module for generating x, y, hsync, vsync, valid
@@ -47,20 +49,20 @@ module vga_driver#(parameter H_AV  = 10'd640,
 			     V_SP  = 10'd2, 
 			     V_BP  = 10'd32,
 			     V_END = V_AV + V_FP + V_SP + V_BP)
-		 (input  logic       pix_clk, reset,
+		 (input  logic       pixClk, reset,
 		  output logic       hSync, vSync,
 		  output logic [9:0] x, y,
 		  output logic       valid);
 						
   // Set hSync & vSync low during their sync pulses
-  assign hsync = ~((x >= (H_AV + H_FP)) & (x < (H_AV + H_FP + H_SP)));
-  assign vsync = ~((y >= (V_AV + V_FP)) & (y < (V_AV + V_FP + V_SP)));
+  assign hSync = ~((x >= (H_AV + H_FP)) & (x < (H_AV + H_FP + H_SP)));
+  assign vSync = ~((y >= (V_AV + V_FP)) & (y < (V_AV + V_FP + V_SP)));
 
   // Video is only valid within the x & y active video ranges
   assign valid = (x < H_AV) & (y < V_AV);
 
   // Generate x and y
-  always @(posedge pix_clk, posedge reset) begin
+  always @(posedge pixClk, posedge reset) begin
     if (reset) begin
       x <= 0;
       y <= 0;
@@ -76,6 +78,22 @@ module vga_driver#(parameter H_AV  = 10'd640,
   end
 endmodule
 
+// Generates the video signals (digit in white & text in blue)
+module video_gen(input  logic [3:0] digit,
+		 input  logic       digitEn,
+		 input  logic [9:0] x, y,
+		 output logic       R, G, B);
+
+  logic digPix, txtPix;
+
+  dig_gen_rom dgr(digit, x, y, digPix);
+  // TODO: Implement text generate rom
+
+  // Produce RGB signals
+  assign {R, G, B} = {digPix, digPix, (digPix | txtPix)};
+
+endmodule
+
 // Digit generation (320x320 digit horizontally centered on screen)
 //  using a 10 digit 6x8 ROM from a text file
 module dig_gen_rom#(parameter SIZE    = 320,
@@ -86,6 +104,7 @@ module dig_gen_rom#(parameter SIZE    = 320,
 			      Y_END   = X_START + SIZE,
 			      Y_DIV   = 40)  // SIZE / 8 (rows of digit)
                   (input  logic [3:0] digit,
+		   input  logic       digitEn,
 		   input  logic [9:0] x, y,
                    output logic       pixel);
 
@@ -106,7 +125,7 @@ module dig_gen_rom#(parameter SIZE    = 320,
 
   // extract the current line from the desired digit
   //  6x8 digit; digit * 8 + curr_y give the line from ROM
-  assign line = {digrom[yoff+(digit, 3'b000}]};
+  assign line = (digitEn) ? {digrom[yoff+(digit, 3'b000}]} : 6'd0;
 
   // reverse the bit order and extract current pixel
   assign pixel = (valid) ? line[3'd5 - xoff] : 0;
