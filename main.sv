@@ -116,7 +116,7 @@ module dig_gen_rom#(parameter SIZE    = 320,
   logic xoff, yoff, valid;
 
   // initialize the digit ROM from file
-  initial    $readmemb("digrom.txt", digrom);
+  initial    $readmemb("roms/digrom.txt", digrom);
 
   assign valid = (x >= X_START & x < X_END) &
 		 (y >= Y_START & y < Y_END);
@@ -156,8 +156,8 @@ module txt_gen_rom#(parameter SCALE    = 2,
   logic        xoff, yoff, valid;
 
   // initialize character and text ROMs from file
-  initial    $readmemb("charrom.txt", charrom);
-  initial    $readmemh("textrom.txt", txtrom);
+  initial    $readmemb("roms/charrom.txt", charrom);
+  initial    $readmemh("roms/textrom.txt", txtrom);
 
   assign valid = x < X_END & (y >= Y_START & y < Y_END);
 
