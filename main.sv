@@ -87,13 +87,44 @@ module video_gen(input  logic [3:0] digit,
   logic       digPix, txtPix;
   logic [3:0] txtSelect; // chooses which of the 10 strings to display
 
-  assign txtSelect = 4'd0; // TODO: Set up random number generator to select text
+  text_select_lfsr_rng tslr(clk, reset, digit, digitEn, txtSelect);
 
   dig_gen_rom dgr(digit, x, y, digPix);
   txt_gen_rom tgr(txtSelect, x, y, txtPix);
 
   // Produce RGB signals
   assign {R, G, B} = {digPix, digPix, (digPix | txtPix)};
+
+endmodule
+
+// A 5-bit LFSR puesdo-number generator
+//  Holds selection until digit changes
+module text_select_lfsr_rng#(parameter OPTIONS = 10) // Number strings to be selected from
+			   (input  logic       clk, reset,
+			    input  logic [3:0] digit,
+			    input  logic       digitEn,
+			    output logic [3:0] txtSelect);
+
+  logic [3:0] digitPrev, tempSelect;
+  logic       en;
+
+  // Remember the previous digit
+  always_ff @(negedge clk)
+    digitPrev <= digit;
+
+  // Select new text if digit changes
+  assign en = digitPrev != digit;
+
+  always_ff @(posedge clk, posedge reset) begin
+    if (reset)   q <= 4'd3;                  // initial seed (non-zero)
+    else if (en) q <= {q[3:0], q[3] ^ q[0]}; // polynomial for maximal LFSR
+    else         q <= q;
+  end
+
+  assign tempSelect = {q[4], q[2:0]}; // omit 4th bit ("more" randomness)
+  assign txtSelect  = (digitEn) ? ((tempSelect > 4'd0 & tempSelect < OPTIONS) ?
+                                    tempSelect : 4'd1)
+				 : 4'd0; // 0 for instructions
 
 endmodule
 
