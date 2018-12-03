@@ -9,13 +9,8 @@
 // https://dekunukem.wordpress.com/2016/03/04/putting-the-f-in-fap-vga-controller-part-1-character-generator/
 // http://blog.andyselle.com/2014/12/04/vga-character-generator-on-an-fpga/
 // https://www.fpga4fun.com/PongGame.html
-module vga_digit_display(input  logic clk,
-			 input  logic reset,
-			 output logic hSync,
-			 output logic vSync,
-			 output logic R,
-			 output logic G,
-			 output logic B);
+module vga_digit_display(input  logic clk, reset,
+			 output logic hSync, vSync, R, G, B);
 
   logic [9:0] x, y;
   logic valid;
@@ -27,9 +22,7 @@ module vga_digit_display(input  logic clk,
   vga_driver driver(pix_clk, reset, hSync, vSync, x, y, valid);
 
   // draw a red square
-  assign R = ((x > 10'd200) && (y > 10'd120) && (x < 10'd360) && (y < 10'd280));
-  assign G = 0;
-  assign B = 0;
+  gen_red_square grs(x, y, R, G, B);
 endmodule 
 
 // Module for generating x, y, hsync, vsync, valid
@@ -54,21 +47,16 @@ module vga_driver#(parameter H_AV  = 10'd640,
 			     V_SP  = 10'd2, 
 			     V_BP  = 10'd32,
 			     V_END = V_AV + V_FP + V_SP + V_BP)
-		 (input  logic       pix_clk,
-		  input  logic       reset,
-		  output logic       hSync,
-		  output logic       vSync,
-		  output logic [9:0] x,
-		  output logic [9:0] y,
+		 (input  logic       pix_clk, reset,
+		  output logic       hSync, vSync,
+		  output logic [9:0] x, y,
 		  output logic       valid);
 						
-  // hSync is low for [H_AV + H_FP, H_AV + H_FP + H_SP]	
+  // Set hSync & vSync low during their sync pulses
   assign hsync = ~((x >= (H_AV + H_FP)) & (x < (H_AV + H_FP + H_SP)));
-
-  // vSync is low for [V_AV + V_FP, V_AV + V_FP + V_SP]	
   assign vsync = ~((y >= (V_AV + V_FP)) & (y < (V_AV + V_FP + V_SP)));
 
-  // Valid region of pixels: x < H_ACTIVE_VIDEO & y < V_ACTIVE_VIDEO
+  // Video is only valid within the x & y active video ranges
   assign valid = (x < H_AV) & (y < V_AV);
 
   // Generate x and y
@@ -86,4 +74,14 @@ module vga_driver#(parameter H_AV  = 10'd640,
       end
     end
   end
+endmodule
+
+// Simple test module: Draw a red square to the screen
+module gen_red_square(input  logic [9:0] x, y,
+		      output logic       R, G, B);
+
+  assign R = ((x > 10'd200) && (y > 10'd120) && (x < 10'd360) && (y < 10'd280));
+  assign G = 0;
+  assign B = 0;
+
 endmodule
