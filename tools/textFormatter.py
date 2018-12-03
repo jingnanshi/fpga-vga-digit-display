@@ -13,20 +13,22 @@ TXT_MAX_LEN = 53
 def main():
   txt = raw_input('Text to be formatted (53 char limit): ')
   txt = txt.upper() # expect upper case input
-  diff = TXT_MAX_LEN - len(txt)
+  lenDiff = TXT_MAX_LEN - len(txt)
 
-  if diff < 0:
+  if lenDiff < 0:
     print "[Error] Input text is too long"
     return
   elif re.match("^[A-Z!? ]*$", txt) is None:
     print "[Error] Only A-Z, ?, !, and (SPACE) are valid characters"
     return
 
-  offset = (diff)/2
+  # Center text and normalize string length to TXT_MAX_LEN
+  offset = lenDiff/2
   txt = (offset * ' ') + txt + ((offset + diff % 2)  * ' ')
   print "Centering offset:", offset, "characters"
   print "Centered text:", txt, "[len -> " + str(len(txt)) + "]"
 
+  # Translate the character into the charrom encoding
   output = ''
   for char in txt:
     charNum = ord(char)
