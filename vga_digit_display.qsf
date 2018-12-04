@@ -60,4 +60,10 @@ set_location_assignment PIN_3 -to B
 set_location_assignment PIN_7 -to G
 set_location_assignment PIN_10 -to R
 set_global_assignment -name QIP_FILE vga_pll.qip
+set_location_assignment PIN_76 -to digit[0]
+set_location_assignment PIN_83 -to digit[3]
+set_location_assignment PIN_80 -to digit[2]
+set_location_assignment PIN_77 -to digit[1]
+set_location_assignment PIN_30 -to digitEn
+set_global_assignment -name DEVICE_MIGRATION_LIST EP4CE6E22C8
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
