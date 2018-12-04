@@ -159,7 +159,7 @@ module dig_gen_rom#(parameter SIZE    = 10'd320,
 
   // extract the current line from the desired digit
   //  6x8 digit; digit * 8 + curr_y gives the line from ROM
-  assign line = (digitEn) ? {digrom[yoff+(digit, 3'b000}]} : 6'd0;
+  assign line = (digitEn) ? {digrom[yoff+{digit, 3'b000}]} : 6'd0;
 
   // reverse the bit order and extract current pixel
   assign pixel = (valid) ? line[3'd5 - xoff] : 1'd0;
@@ -205,7 +205,7 @@ module txt_gen_rom#(parameter SCALE    = 10'd2,
 
   // extract the current line from the desired character
   //  6x8 character; char * 8 + curr_y gives the line from ROM
-  assign line = {charrom[yoff+(char, 3'b000}]};
+	assign line = {charrom[yoff+{char, 3'b000}]};
 
   // reverse the bit order and extract current pixel
   assign pixel = (valid) ? line[3'd5 - xoff] :  1'd0;
