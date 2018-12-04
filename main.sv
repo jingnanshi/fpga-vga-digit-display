@@ -89,7 +89,7 @@ module video_gen(input  logic [3:0] digit,
 
   text_select_lfsr_rng tslr(clk, reset, digit, digitEn, txtSelect);
 
-  dig_gen_rom dgr(digit, x, y, digPix);
+  dig_gen_rom dgr(digit, digitEn, x, y, digPix);
   txt_gen_rom tgr(txtSelect, x, y, txtPix);
 
   // Produce RGB signals
@@ -99,7 +99,7 @@ endmodule
 
 // A 5-bit LFSR puesdo-number generator
 //  Holds selection until digit changes
-module text_select_lfsr_rng#(parameter OPTIONS = 10) // Number strings to be selected from
+module text_select_lfsr_rng#(parameter OPTIONS = 4'd10) // Number strings to be selected from
 			   (input  logic       clk, reset,
 			    input  logic [3:0] digit,
 			    input  logic       digitEn,
@@ -130,21 +130,22 @@ endmodule
 
 // Digit generation (320x320 digit horizontally centered on screen)
 //  using a 10 digit 6x8 ROM from a text file
-module dig_gen_rom#(parameter SIZE    = 320,
-			      X_START = 160,
-			      X_END   = X_START + SIZE,
-			      X_DIV   = 53,  // SIZE / 6 (cols of digit)
-			      Y_START = 20,
+module dig_gen_rom#(parameter SIZE    = 10'd320,
+			      X_START = 10'd160,
+			      X_END   = X_START + SIZE - 10'd2, // offset due to division resolution
+			      X_DIV   = 10'd53,  // SIZE / 6 (cols of digit)
+			      Y_START = 10'd20,
 			      Y_END   = X_START + SIZE,
-			      Y_DIV   = 40)  // SIZE / 8 (rows of digit)
+			      Y_DIV   = 10'd40)  // SIZE / 8 (rows of digit)
                   (input  logic [3:0] digit,
 		   input  logic       digitEn,
 		   input  logic [9:0] x, y,
                    output logic       pixel);
 
-  logic [5:0] digrom[3:0]; // digit generator ROM
-  logic [5:0] line;        // a line of the digit
-  logic xoff, yoff, valid;
+  logic [5:0] digrom[127:0]; // digit generator ROM (8 lines/digit * 10 digit)
+  logic [5:0] line;          // a line of the digit
+  logic [2:0] xoff, yoff;    // current position in the digit
+  logic       valid;
 
   // initialize the digit ROM from file
   initial    $readmemb("roms/digrom.txt", digrom);
@@ -153,38 +154,39 @@ module dig_gen_rom#(parameter SIZE    = 320,
 		 (y >= Y_START & y < Y_END);
 
   // scale the digit to 320x320 using divider
-  assign xoff = (valid) ? (x - X_START) / X_DIV : 0;
-  assign yoff = (valid) ? (y - Y_START) / Y_DIV : 0;
+  assign xoff = (valid) ? ((x - X_START) / X_DIV) : 3'd0;
+  assign yoff = (valid) ? ((y - Y_START) / Y_DIV) : 3'd0;
 
   // extract the current line from the desired digit
   //  6x8 digit; digit * 8 + curr_y gives the line from ROM
   assign line = (digitEn) ? {digrom[yoff+(digit, 3'b000}]} : 6'd0;
 
   // reverse the bit order and extract current pixel
-  assign pixel = (valid) ? line[3'd5 - xoff] : 0;
+  assign pixel = (valid) ? line[3'd5 - xoff] : 1'd0;
 
 endmodule
 
 
 // Text generation (12x16 characters horizontally centered on screen)
 //  using a 29 char 6x8 ROM from a text file
-module txt_gen_rom#(parameter SCALE    = 2,
-                              WIDTH    = 12,
-                              HEIGHT   = 16,
-			      X_END    = 640,
-			      Y_START  = 412, // Y_END + 52
+module txt_gen_rom#(parameter SCALE    = 10'd2,
+                              WIDTH    = 10'd12,
+                              HEIGHT   = 10'd16,
+			      X_END    = 10'd640,
+			      Y_START  = 10'd412, // DIGIT_Y_END + 52
 			      Y_END    = Y_START + HEIGHT,
-			      TXT_SIZE = 53)
+			      TXT_SIZE = 6'd53)
 		  (input  logic [3:0] txtSelect, 
 		   input  logic       x, y,
                    output logic       pixel);
 
-  logic [5:0]  charrom[5:0]; // character generator ROM
-  logic [4:0]  txtrom[10:0]; // formatted text ROM
-  logic [4:0]  char;         // character to display
-  logic [5:0]  charPos;      // position of character screen
-  logic [10:0] txtPos;       // position of text in ROM
-  logic        xoff, yoff, valid;
+  logic [5:0] charrom[255:0]; // character generator ROM (8 lines/char * 29 char)
+  logic [4:0] txtrom[1023:0]; // formatted text ROM (53 char/text * 10 text)
+  logic [4:0] char;           // character to display
+  logic [5:0] charPos;        // position of character screen
+  logic [9:0] txtPos;         // position of text in ROM
+  logic [2:0] xoff, yoff;
+  logic       valid;
 
   // initialize character and text ROMs from file
   initial    $readmemb("roms/charrom.txt", charrom);
@@ -193,8 +195,8 @@ module txt_gen_rom#(parameter SCALE    = 2,
   assign valid = x < X_END & (y >= Y_START & y < Y_END);
 
   // scale the char by factor of 2
-  assign xoff = (valid) ? (x % WIDTH)   / SCALE : 0;
-  assign yoff = (valid) ? (y - Y_START) / SCALE : 0;
+  assign xoff = (valid) ? ((x % WIDTH)   / SCALE) : 3'd0;
+  assign yoff = (valid) ? ((y - Y_START) / SCALE) : 3'd0;
 
   // determine the character to be displayed
   assign charPos = x / WIDTH;
@@ -206,7 +208,7 @@ module txt_gen_rom#(parameter SCALE    = 2,
   assign line = {charrom[yoff+(char, 3'b000}]};
 
   // reverse the bit order and extract current pixel
-  assign pixel = (valid) ? line[3'd5 - xoff] :  0;
+  assign pixel = (valid) ? line[3'd5 - xoff] :  1'd0;
 
 endmodule
 
@@ -220,3 +222,4 @@ module gen_red_square(input  logic [9:0] x, y,
   assign B = 0;
 
 endmodule
+
