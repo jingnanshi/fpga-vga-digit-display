@@ -5,9 +5,9 @@
 // 
 
 module vga_digit_display(input  logic       clk, reset,
-			                   input  logic [3:0] digit,
-			                   input  logic       digitEn,
-			                   output logic       hSync, vSync, R, G, B);
+                         input  logic [3:0] digit,
+                         input  logic       digitEn,
+                         output logic       hSync, vSync, R, G, B);
 
   logic [9:0] x, y;
   logic       valid;
@@ -36,19 +36,19 @@ endmodule
 // BP  => Back Porch
 // END => Total pixels
 module vga_driver#(parameter H_AV  = 10'd640,
-			                       H_FP  = 10'd16,
-			                       H_SP  = 10'd96, 
-			                       H_BP  = 10'd48,
-			                       H_END = H_AV + H_FP + H_SP + H_BP,
-			                       V_AV  = 10'd480,
-			                       V_FP  = 10'd11,
-			                       V_SP  = 10'd2, 
-			                       V_BP  = 10'd32,
-			                       V_END = V_AV + V_FP + V_SP + V_BP)
-		             (input  logic       pixClk, reset,
-		              output logic       hSync, vSync,
-		              output logic [9:0] x, y,
-		              output logic       valid);
+                             H_FP  = 10'd16,
+                             H_SP  = 10'd96,
+                             H_BP  = 10'd48,
+                             H_END = H_AV + H_FP + H_SP + H_BP,
+                             V_AV  = 10'd480,
+                             V_FP  = 10'd11,
+                             V_SP  = 10'd2,
+                             V_BP  = 10'd32,
+                             V_END = V_AV + V_FP + V_SP + V_BP)
+                 (input  logic       pixClk, reset,
+                  output logic       hSync, vSync,
+                  output logic [9:0] x, y,
+                  output logic       valid);
 						
   // Set hSync & vSync low during their sync pulses
   assign hSync = ~((x >= (H_AV + H_FP)) & (x < (H_AV + H_FP + H_SP)));
@@ -77,10 +77,10 @@ endmodule
 
 // Generates the video signals (digit in white & text in cyan)
 module video_gen(input  logic       clk, reset,
-		             input  logic [3:0] digit,
-            		 input  logic       digitEn,
-            		 input  logic [9:0] x, y,
-            		 output logic       R, G, B);
+                 input  logic [3:0] digit,
+                 input  logic       digitEn,
+                 input  logic [9:0] x, y,
+                 output logic       R, G, B);
 
   logic       digPix, txtPix;
   logic [3:0] txtSelect;      // chooses which of the 10 strings to display
@@ -100,10 +100,10 @@ endmodule
 //  Holds selection until digit changes
 //   https://www.eetimes.com/document.asp?doc_id=1274550&page_number=2 => for maximal LFSR polynomial
 module text_select_lfsr_rng#(parameter OPTIONS = 4'd10) // Number strings to be selected from
-			                     (input  logic       clk, reset,
-			                      input  logic [3:0] digit,
-		                  	    input  logic       digitEn,
-			                      output logic [3:0] txtSelect);
+                           (input  logic       clk, reset,
+                            input  logic [3:0] digit,
+                            input  logic       digitEn,
+                            output logic [3:0] txtSelect);
 
   logic [4:0] q;
   logic [3:0] digitPrev;
@@ -129,8 +129,8 @@ module text_select_lfsr_rng#(parameter OPTIONS = 4'd10) // Number strings to be 
   end
 
   assign txtSelect = (digitEn) ? ((q[3:0] > 4'd0 & q[3:0] < OPTIONS) ?
-				                           q[3:0] : {1'b0, q[3:1]})
-			                       	 : 4'd0;     // 0 for instructions
+                                   q[3:0] : {1'b0, q[3:1]})
+                               : 4'd0;     // 0 for instructions
 
 endmodule
 
@@ -138,15 +138,15 @@ endmodule
 // Digit generation (320x320 digit horizontally centered on screen)
 //  using a 10 digit 6x8 ROM from a text file
 module dig_gen_rom#(parameter SIZE    = 10'd320,
-			                        X_START = 10'd160,
-			                        X_END   = X_START + SIZE - 10'd2, // offset due to division resolution
-			                        X_DIV   = 10'd53,  // SIZE / 6 (cols of digit)
-			                        Y_START = 10'd20,
-			                        Y_END   = Y_START + SIZE,
-			                        Y_DIV   = 10'd40)  // SIZE / 8 (rows of digit)
+                              X_START = 10'd160,
+                              X_END   = X_START + SIZE - 10'd2, // offset due to division resolution
+                              X_DIV   = 10'd53,  // SIZE / 6 (cols of digit)
+                              Y_START = 10'd20,
+                              Y_END   = Y_START + SIZE,
+                              Y_DIV   = 10'd40)  // SIZE / 8 (rows of digit)
                   (input  logic [3:0] digit,
-		               input  logic       digitEn,
-		               input  logic [9:0] x, y,
+                   input  logic       digitEn,
+                   input  logic [9:0] x, y,
                    output logic       pixel);
 
   logic [5:0] digrom[79:0]; // digit generator ROM (8 lines/digit * 10 digit)
@@ -158,7 +158,7 @@ module dig_gen_rom#(parameter SIZE    = 10'd320,
   initial    $readmemb("roms/digrom.txt", digrom);
 
   assign valid = (x >= X_START & x < X_END) &
-		 (y >= Y_START & y < Y_END);
+                 (y >= Y_START & y < Y_END);
 
   // scale the digit to 320x320 using divider
   assign xoff = (valid) ? ((x - X_START) / X_DIV) : 3'd0;
@@ -179,12 +179,12 @@ endmodule
 module txt_gen_rom#(parameter SCALE    = 10'd2,
                               WIDTH    = 10'd12,
                               HEIGHT   = 10'd16,
-			                        X_END    = 10'd636, // WIDTH * TXT_SIZE
-			                        Y_START  = 10'd412, // DIGIT_Y_END + 52
-			                        Y_END    = Y_START + HEIGHT,
-			                        TXT_SIZE = 6'd53)
-		              (input  logic [3:0] txtSelect, 
-		               input  logic [9:0] x, y,
+                              X_END    = 10'd636, // WIDTH * TXT_SIZE
+                              Y_START  = 10'd412, // DIGIT_Y_END + 52
+                              Y_END    = Y_START + HEIGHT,
+                              TXT_SIZE = 6'd53)
+                  (input  logic [3:0] txtSelect,
+                   input  logic [9:0] x, y,
                    output logic       pixel);
 
   logic [5:0] charrom[231:0]; // character generator ROM (8 lines/char * 29 char)
@@ -223,7 +223,7 @@ endmodule
 
 // Simple test module: Draw a red square to the screen
 module gen_red_square(input  logic [9:0] x, y,
-		                  output logic       R, G, B);
+                      output logic       R, G, B);
 
   assign R = ((x > 10'd200) && (y > 10'd120) && (x < 10'd360) && (y < 10'd280));
   assign G = 0;
